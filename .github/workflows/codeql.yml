@@ -44,10 +44,19 @@ jobs:
 
       - name: Run Docker container
         run: docker run -d -p 8080:8080 --name test-container go-web-server
-
+      
       - name: Wait for server to start
-        run: sleep 5
-
+        run: |
+          echo "Waiting for server to be ready..."
+          for i in {1..30}; do
+            if curl -s http://localhost:8080/readfile?file=hello.txt > /dev/null 2>&1; then
+              echo "Server is ready!"
+              break
+            fi
+            echo "Attempt $i: Server not ready yet..."
+            sleep 2
+          done
+      
       - name: Test readfile endpoint
         run: |
           response=$(curl -s "http://localhost:8080/readfile?file=hello.txt")
@@ -57,8 +66,6 @@ jobs:
           else
             echo "✗ Test failed: Unexpected response"
             exit 1
-          fi
-
-      - name: Stop container
+          fi      - name: Stop container
         if: always()
         run: docker stop test-container && docker rm test-container
